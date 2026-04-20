@@ -1,25 +1,23 @@
 {
   "version": 2,
-  "buildCommand": "npm install",
+  "public": true,
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1.js"
+      "dest": "/api/$1"
     },
     {
-      "src": "/style.css",
-      "dest": "/style.css"
+      "src": "/(.*\\.(js|css|html|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
+      "dest": "/$1"
     },
     {
-      "src": "/script.js",
-      "dest": "/script.js"
-    },
-    {
-      "src": "/main.html",
-      "dest": "/main.html"
-    },
-    {
-      "src": "/",
+      "src": "/.*",
       "dest": "/main.html"
     }
   ]
