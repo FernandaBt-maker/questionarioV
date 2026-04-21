@@ -10,16 +10,17 @@ npm install
 ```
 
 ### 2. Executar localmente
-Para desenvolvimento local com o Node.js:
+Pré-visualização estática (como na Vercel, sem rotas `/api`):
 ```bash
 npm start
 ```
-Ou com auto-reload:
+Acesse `http://localhost:3000` (abre `index.html` na raiz).
+
+Para testar o formulário com as funções serverless localmente:
 ```bash
 npm run dev
 ```
-
-Acesse `http://localhost:3000` e abra `main.html`.
+(usa a CLI da Vercel; na primeira vez pode pedir login.)
 
 ## Deploy no Vercel
 
@@ -51,9 +52,9 @@ git push -u origin main
 
 ## Como Funciona
 
-- **Frontend**: `main.html`, `script.js`, `style.css` - Formulário interativo
-- **Backend**: `api/submit.js` - Serverless Function que recebe os dados
-- **Configuração Vercel**: `vercel.json` - Define como rodar na plataforma
+- **Frontend**: `index.html`, `script.js`, `style.css` — formulário interativo
+- **Backend**: `api/submit.js` — função serverless (POST `/api/submit`)
+- **Configuração Vercel**: `vercel.json` — rewrite da raiz para `index.html`
 
 Quando alguém preenche e envia o formulário:
 1. Os dados são enviados para `/api/submit`
