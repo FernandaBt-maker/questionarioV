@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Respostas do formulário</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; background: #0f1115; color: #e8eaed; }
+    body { margin: 0; padding: 1.25rem; max-width: 1200px; margin-inline: auto; }
+    h1 { font-size: 1.25rem; font-weight: 600; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; margin-bottom: 1rem; }
+    input[type="password"], input[type="url"] {
+      padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid #333; background: #1a1d24; color: inherit;
+      min-width: 200px; box-sizing: border-box;
+    }
+    input[type="url"] { flex: 1; min-width: 280px; max-width: 100%; }
+    button { padding: 0.5rem 1rem; border-radius: 8px; border: none; background: #3b82f6; color: #fff; font-weight: 500; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .err { color: #f87171; margin-top: 0.5rem; white-space: pre-wrap; }
+    .hint { color: #9aa0a6; font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5; }
+    .card { background: #1a1d24; border: 1px solid #2a2f3a; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
+    .meta { font-size: 0.8rem; color: #9aa0a6; margin-bottom: 0.75rem; }
+    dl { margin: 0; display: grid; grid-template-columns: minmax(140px, 200px) 1fr; gap: 0.35rem 1rem; font-size: 0.9rem; }
+    dt { color: #9aa0a6; }
+    dd { margin: 0; word-break: break-word; }
+    label { display: block; font-size: 0.75rem; color: #9aa0a6; margin-bottom: 0.25rem; }
+    .row { width: 100%; margin-bottom: 0.75rem; }
+  </style>
+</head>
+<body>
+  <h1>Respostas recebidas</h1>
+  <p class="hint">
+    A API fica em <code>/.netlify/functions/submissions</code> (use <strong>npm run dev</strong> ou deploy na Netlify).
+    Com só <code>npm start</code>, preencha a URL base ao carregar dados.
+  </p>
+
+  <div class="row">
+    <label for="base">URL base (opcional, ex.: http://127.0.0.1:8888)</label>
+    <input type="url" id="base" placeholder="Deixe vazio se o painel e a API estão no mesmo host" />
+  </div>
+  <div class="toolbar">
+    <div>
+      <label for="secret">ADMIN_SECRET</label><br />
+      <input type="password" id="secret" placeholder="Chave do .env / Netlify" autocomplete="current-password" />
+    </div>
+    <button type="button" id="load">Carregar</button>
+  </div>
+  <div id="msg" class="err" role="alert"></div>
+  <div id="list"></div>
+  <script>
+    (function () {
+      const LABELS = {
+        id: 'ID', createdAt: 'Recebido em', nome: 'Nome', email: 'E-mail', whatsapp: 'WhatsApp',
+        empresa: 'Empresa', cidade_estado: 'Cidade/UF', instagram: 'Instagram', site: 'Site/LP',
+        site_url: 'URL do site', tempo_empresa: 'Tempo de empresa', faturamento: 'Faturamento',
+        equipe: 'Equipe', desafio: 'Desafios', estagio: 'Estágio', clareza_proposta: 'Clareza da proposta',
+        posicionamento: 'Posicionamento', decisoes: 'Decisões', processo_comercial: 'Processo comercial',
+        atendimento: 'Atendimento', metricas: 'Métricas', conteudo: 'Conteúdo', motivacao: 'Motivação',
+        custo_inacao: 'Custo da inação', historico: 'Histórico consultoria', aprendizado: 'Aprendizado',
+        disposicao: 'Disposição', faixa_investimento: 'Faixa de investimento',
+      };
+
+      const secretInput = document.getElementById('secret');
+      const baseInput = document.getElementById('base');
+      const loadBtn = document.getElementById('load');
+      const msg = document.getElementById('msg');
+      const listEl = document.getElementById('list');
+
+      function apiUrl() {
+        const raw = (baseInput.value || '').trim().replace(/\/+$/, '');
+        const path = '/.netlify/functions/submissions';
+        if (!raw) return path;
+        return raw + path;
+      }
+
+      try {
+        const j = JSON.parse(localStorage.getItem('painel_prefs') || '{}');
+        if (j.base) baseInput.value = j.base;
+      } catch (_) {}
+
+      function saveBase() {
+        localStorage.setItem('painel_prefs', JSON.stringify({ base: baseInput.value.trim() }));
+      }
+
+      function render(items) {
+        listEl.innerHTML = '';
+        if (!items.length) {
+          listEl.innerHTML = '<p style="color:#9aa0a6">Nenhuma resposta ainda.</p>';
+          return;
+        }
+        for (const row of items) {
+          const card = document.createElement('div');
+          card.className = 'card';
+          const meta = document.createElement('div');
+          meta.className = 'meta';
+          meta.textContent = (row.createdAt || '') + (row.id ? ' · ' + row.id : '');
+          card.appendChild(meta);
+          const dl = document.createElement('dl');
+          for (const [k, v] of Object.entries(row)) {
+            if (k === 'id' || k === 'createdAt') continue;
+            if (v == null || v === '') continue;
+            const dt = document.createElement('dt');
+            dt.textContent = LABELS[k] || k;
+            const dd = document.createElement('dd');
+            dd.textContent = typeof v === 'object' ? JSON.stringify(v) : String(v);
+            dl.appendChild(dt);
+            dl.appendChild(dd);
+          }
+          card.appendChild(dl);
+          listEl.appendChild(card);
+        }
+      }
+
+      async function load() {
+        msg.textContent = '';
+        const secret = secretInput.value.trim();
+        if (!secret) {
+          msg.textContent = 'Informe ADMIN_SECRET.';
+          return;
+        }
+        saveBase();
+        loadBtn.disabled = true;
+        const url = apiUrl();
+        try {
+          const res = await fetch(url, { headers: { Authorization: 'Bearer ' + secret } });
+          const text = await res.text();
+          let data = {};
+          try {
+            data = text ? JSON.parse(text) : {};
+          } catch {
+            msg.textContent =
+              'Resposta não é JSON (ex.: 404 HTML). Ajuste a URL base ou use netlify dev.\nPedido: ' + url;
+            listEl.innerHTML = '';
+            return;
+          }
+          if (!res.ok) {
+            msg.textContent = data.error || ('Erro HTTP ' + res.status);
+            listEl.innerHTML = '';
+            return;
+          }
+          render(data.items || []);
+        } catch (e) {
+          msg.textContent = 'Falha de rede: ' + url + '\n' + (e && e.message ? e.message : e);
+          listEl.innerHTML = '';
+        } finally {
+          loadBtn.disabled = false;
+        }
+      }
+
+      loadBtn.addEventListener('click', load);
+    })();
+  </script>
+</body>
+</html>
